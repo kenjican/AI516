@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 
 app.get('/',function(req,res){
-  res.sendFile('/home/ubuntu/AI516/index.htm');
+  res.sendFile('/home/pi/AI516/index.htm');
 });
 
 app.get('/run',function(req,res){
@@ -65,7 +65,11 @@ function interpret(data){
 
 
 function getv(){
-  AI516.flush();
+/*  AI516.flush(function(err,result){
+    console.log(result);
+  });
+  */
+  AI516.read();
   AI516.write([0x01,0x03,0x00,0x00,0x00,0x08,0x44,0x0C]);
 }
 
@@ -77,5 +81,5 @@ AI516.on('data',function(data){
 });
 */
 
-let t1 = setInterval(getv,1000);
+let t1 = setInterval(getv,10000);
 
