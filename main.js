@@ -1,11 +1,17 @@
+/***************
+version :0.1
+purpose: webUI of controller
+Auther: Kenji Chen
+Date: 2018-Feb-16
+*/
+
+
+
 let express = require('express');
 let app = express();
 let serialP1 = require('serialport');
 let bodyParser = require('body-parser');
-//const Ready = serialP1.parsers.Ready;
-//let ByteLength = serialP1.parsers.ByteLength;
 
-//const CCTalk = serialP1.parsers.CCTalk;
 let serialP1Buf = {
   index:0,
   buf: new Buffer(25),
@@ -25,16 +31,15 @@ app.get('/',function(req,res){
 });
 
 app.get('/run',function(req,res){
-  console.log(req);
   res.send('running');
-  //parser = null;
-  //parser = AI516.pipe(new ByteLength({length:8}));
+  console.log("run clicked");
   AI516.write([0x01,0x06,0x00,0x1B,0x00,0x00,0xF9,0xCD]);
 });
 
 app.get('/stop',function(req,res){
   AI516.write([0x01,0x06,0x00,0x1B,0x00,0x01,0x38,0x0D]);
   res.send('stopped');
+  console.log("stop clicked");
 });
 
 app.get('/getvalue',function(req,res){
@@ -53,62 +58,45 @@ let AI516 = new serialP1('/dev/ttyUSB0',{
   parity:'none'
 });
 
-//let parser = AI516.pipe(new ByteLength({length:13}));
-//const parser = AI516.pipe(new CCTalk());
-//parser.on('data',console.log);
-
-//parser.on('ready',()=> console.log("ready to go"));
 
 AI516.on('data',function(data){
-    //console.log(data.length);
   data.copy(serialP1Buf.buf,serialP1Buf.index,0,data.length);
   serialP1Buf.index += data.length;
   console.log(serialP1Buf.index);
-  if(serialP1Buf.buf.indexOf(serialP1Buf.f03) >=0 && serialP1Buf.index >= 13){
+  if(serialP1Buf.buf.indexOf(serialP1Buf.f03)>=0 && (serialP1Buf.index + serialP1Buf.buf.indexOf(serialP1Buf.f03)>= 13)){
     serialP1Buf.index = 0;
     console.log(serialP1Buf.buf);
-  }else if
-  //console.log(serialP1Buf.buf);
-  
-  //console.log(serialP1Buf.buf.indexOf(serialP1Buf.f03));
-//  console.log(serialP1Buf.index);
-/*
-  if(serialP1Buf.buf.indexOf(serialP1Buf.f03) != -1 && serialP1Buf.buf.length >=13){
-    console.log(serialP1Buf.buf.slice(0,14));
+    getCRC(serialP1Buf.buf.slice(0,13));
+  }else if(serialP1Buf.buf.indexOf(serialP1Buf.f06) >=0 && (serialP1Buf.index + serialP1Buf.buf.indexOf(serialP1Buf.f06)) >=8){
     serialP1Buf.index = 0;
+    console.log(serialP1Buf.buf);
+    getCRC(serialP1Buf.buf.slice(0,8));
   }
-  */
-	//interpret(data);
 });
-
-
-function interpret(data){
-  data = data.concat(data);
-  if(data.length >= 13){
-    console.log(data);
-  }
-}
-
 
 
 function getv(){
-/*  AI516.flush(function(err,result){
-    console.log(result);
-  });
-  */
-  //AI516.read();
-  //parser = null;
-  //parser = AI516.pipe(new ByteLength({length:13}));
   AI516.write([0x01,0x03,0x00,0x1B,0x00,0x08,0x34,0x0B]);
 }
 
+function getCRC(buf){
+  console.log(Buffer.isBuffer(buf));
+  let CRC = 0xffff;
+  const XorConst = 0xA001;
+  
+  for(i=0;i<=buf.length-3;i++){
+    CRC = CRC ^ buf[i];
+      for(j=0;j<=7;j++){
+        if(CRC % 2 ==0){
+          CRC = CRC / 2;
+        }else{
+          CRC = (CRC-1)/2;
+	  CRC = CRC ^ XorConst;
+        }
+      }
+    }
+   console.log(CRC.toString(16));
+}
 
-
-/*
-AI516.on('data',function(data){
-  console.log(data);
-});
-*/
 
 let t1 = setInterval(getv,1000);
-//setTimeout(function(){AI516.read()},5000);
