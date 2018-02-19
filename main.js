@@ -11,6 +11,34 @@ let express = require('express');
 let app = express();
 let serialP1 = require('serialport');
 let bodyParser = require('body-parser');
+let mysql = require('mysql');
+
+let con = mysql.createConnection({
+  host:'localhost',
+  user:'root',
+  password:'chenjia1!',
+  database:'AI516',
+});
+
+con.connect(function(err){
+  if(err) throw err;
+});
+/*
+con.query(sql,function(err,result){
+  if(!err) {console.log('1 recored added')}
+});
+*/
+function aiparse(buf){
+  let sql = 'insert into AI516_1 (TPV,TSV,Alarms,TMV) values(';
+  sql += (buf.readInt16BE(3)/10) + ",";
+  sql += (buf.readInt16BE(5)/10) + ",";
+  sql += "0x" + buf.slice(7,8).toString("hex") + ",";
+  sql += (buf.readUInt8(8)) + ")";
+  //console.log(sql);
+  con.query(sql,function(err,result){
+   if(err) throw err; 
+  });
+}
 
 let serialP1Buf = {
   index:0,
@@ -27,19 +55,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 
 app.get('/',function(req,res){
-  res.sendFile('/home/pi/AI516/index.htm');
+  res.sendFile('/home/kenji/AI516/index.htm');
 });
 
 app.get('/run',function(req,res){
   res.send('running');
-  console.log("run clicked");
   AI516.write([0x01,0x06,0x00,0x1B,0x00,0x00,0xF9,0xCD]);
 });
 
 app.get('/stop',function(req,res){
   AI516.write([0x01,0x06,0x00,0x1B,0x00,0x01,0x38,0x0D]);
   res.send('stopped');
-  console.log("stop clicked");
 });
 
 app.get('/getvalue',function(req,res){
@@ -62,10 +88,11 @@ let AI516 = new serialP1('/dev/ttyUSB0',{
 AI516.on('data',function(data){
   data.copy(serialP1Buf.buf,serialP1Buf.index,0,data.length);
   serialP1Buf.index += data.length;
-  console.log(serialP1Buf.index);
+  //console.log(serialP1Buf.index);
   if(serialP1Buf.buf.indexOf(serialP1Buf.f03)>=0 && (serialP1Buf.index + serialP1Buf.buf.indexOf(serialP1Buf.f03)>= 13)){
     serialP1Buf.index = 0;
-    console.log(serialP1Buf.buf);
+    //console.log(serialP1Buf.buf);
+    aiparse(serialP1Buf.buf);
     getCRC(serialP1Buf.buf.slice(0,13));
   }else if(serialP1Buf.buf.indexOf(serialP1Buf.f06) >=0 && (serialP1Buf.index + serialP1Buf.buf.indexOf(serialP1Buf.f06)) >=8){
     serialP1Buf.index = 0;
@@ -80,7 +107,7 @@ function getv(){
 }
 
 function getCRC(buf){
-  console.log(Buffer.isBuffer(buf));
+  //console.log(Buffer.isBuffer(buf));
   let CRC = 0xffff;
   const XorConst = 0xA001;
   
@@ -95,7 +122,7 @@ function getCRC(buf){
         }
       }
     }
-   console.log(CRC.toString(16));
+  // console.log(CRC.toString(16));
 }
 
 
