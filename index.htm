@@ -1,11 +1,28 @@
 <!DOCTYPE html>
 <html><head>
-<script src="AI516.js"></script>
+<style>
+#chatBox{width: 100%;height: 80%; position: absolute; top: 0; overflow: scroll;}
+#messageForm{width: 100%; height: 20%; position: absolute; bottom: 0;}
+html body{width: 100%; height: 100%}
+</style>
 </head>
 <body>
 <h1>AI516</h1>
 <input type="button" value="RUN" onclick="run();"></input>
 <input type="button" value="STOP" onclick="stop();"></input>
+<ul id = "messages"></ul>
+<input type="text" id="m"/>
+<script>
+let url = "ws://192.168.0.11:8887";
+let user;
+let socket;
+socket = new WebSocket(url);
+socket.onmessage = function(msg){
+  document.getElementById("m").value = msg.data;
+  //user = msg.data;
+}
 
+
+</script>
 </body>
 </html>

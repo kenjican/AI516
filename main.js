@@ -12,6 +12,24 @@ let app = express();
 let serialP1 = require('serialport');
 let bodyParser = require('body-parser');
 let mysql = require('mysql');
+let WebSocketServer = require('ws').Server;
+
+/*
+websocket setup
+*/
+let wss = new WebSocketServer({port:8887});
+
+function sendall(buf){
+  wss.clients.forEach(function(conn){
+    //conn.send((buf.readInt16BE(3)/10).toString());
+    conn.send(buf);
+  });
+}
+
+/*
+Mysql setup
+*/
+
 
 let con = mysql.createConnection({
   host:'localhost',
@@ -34,11 +52,16 @@ function aiparse(buf){
   sql += (buf.readInt16BE(5)/10) + ",";
   sql += "0x" + buf.slice(7,8).toString("hex") + ",";
   sql += (buf.readUInt8(8)) + ")";
-  //console.log(sql);
+  sendall(sql);
   con.query(sql,function(err,result){
    if(err) throw err; 
   });
 }
+
+
+/*
+serial port setup
+*/
 
 let serialP1Buf = {
   index:0,
@@ -93,6 +116,7 @@ AI516.on('data',function(data){
     serialP1Buf.index = 0;
     //console.log(serialP1Buf.buf);
     aiparse(serialP1Buf.buf);
+    //sendall(serialP1Buf.buf);
     getCRC(serialP1Buf.buf.slice(0,13));
   }else if(serialP1Buf.buf.indexOf(serialP1Buf.f06) >=0 && (serialP1Buf.index + serialP1Buf.buf.indexOf(serialP1Buf.f06)) >=8){
     serialP1Buf.index = 0;
